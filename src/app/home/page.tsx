@@ -226,7 +226,7 @@ return (
                   </ol>
                   
                   <div className="flex justify-center">
-                    <Link href="/assessment/personality">
+                    <Link href="/assessment">
                       <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
                         Start Your Journey
                       </Button>
