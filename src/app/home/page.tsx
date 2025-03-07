@@ -76,7 +76,7 @@ return (
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
                     className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-slate-700 hover:border-blue-500 transition-all hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer group"
-                    onClick={() => router.push('/assessment/personality')}
+                    onClick={() => router.push('/assessment')}
                   >
                     <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-500/30 transition-colors">
                       <span className="text-3xl">🧠</span>
@@ -93,7 +93,7 @@ return (
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-slate-700 hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/10 cursor-pointer group"
-                    onClick={() => router.push('/assessment/skills')}
+                    onClick={() => router.push('/assessment')}
                   >
                     <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
                       <span className="text-3xl">🔧</span>
