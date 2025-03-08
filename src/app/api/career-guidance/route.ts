@@ -5,7 +5,7 @@ import User from '@/models/User';
 import { HfInference } from "@huggingface/inference";
 
 // Initialize Hugging Face client
-const hf = new HfInference(process.env.HUGGINGFACE_API_TOKEN || "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");
+const hf = new HfInference(process.env.HUGGINGFACE_API_TOKEN || "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");
 
 export async function POST(request: Request) {
   try {
