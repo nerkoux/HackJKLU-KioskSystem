@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { calculateMBTI } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { sendAssessment } from '@/lib/api-utils';
 
 // MBTI questions
 const mbtiQuestions = [
@@ -109,13 +111,25 @@ const mbtiQuestions = [
 
 export default function MBTIAssessment() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [responses, setResponses] = useState<string[]>([]);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRetake, setIsRetake] = useState(false);
+  const [isComplete, setIsComplete] = useState(false); // Add state to track completion
+  
+  useEffect(() => {
+    // Check if this is a retake
+    const mbtiResult = localStorage.getItem('mbtiResult');
+    if (mbtiResult) {
+      setIsRetake(true);
+    }
+  }, []);
   
   const progress = (currentQuestion / mbtiQuestions.length) * 100;
   
-  const handleOptionSelect = (value: string) => {
+  const handleOptionSelect = async (value: string) => {
     const newResponses = [...responses, value];
     setResponses(newResponses);
     
@@ -127,20 +141,85 @@ export default function MBTIAssessment() {
       }, 500);
     } else {
       // Assessment complete
+      setIsSubmitting(true);
       const mbtiResult = calculateMBTI(newResponses);
-      // Store result in localStorage for the results page
-      localStorage.setItem('mbtiResult', mbtiResult);
-      localStorage.setItem('mbtiResponses', JSON.stringify(newResponses));
-      router.push('/results');
+      
+      try {
+        // Create a mapping of question IDs to responses
+        const responsesMap: Record<string, string> = {};
+        newResponses.forEach((response, index) => {
+          responsesMap[`q${index + 1}`] = response;
+        });
+        
+        // Save to localStorage first (as a backup)
+        localStorage.setItem('mbtiResult', mbtiResult);
+        localStorage.setItem('mbtiResponses', JSON.stringify(responsesMap));
+        localStorage.setItem('mbtiCompleted', 'true');
+        
+        // Save to database if user is logged in
+        if (status === 'authenticated') {
+          // Save to MongoDB via Next.js API
+          await fetch('/api/user/assessment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              mbtiResult,
+              mbtiResponses: responsesMap,
+              mbtiCompleted: true,
+              completedAt: new Date().toISOString()
+            }),
+          });
+        }
+        
+        // Set completion state
+        setIsComplete(true);
+        
+        // Show completion screen by not redirecting immediately
+        setIsSubmitting(false);
+      } catch (err) {
+        console.error('Error saving MBTI result:', err);
+        // Even if there's an error, we've saved to localStorage, so continue
+        setIsSubmitting(false);
+      }
     }
   };
+  
+  // Show completion screen if all questions are answered
+  if (currentQuestion === mbtiQuestions.length && !isSubmitting) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-slate-800/50 backdrop-blur-sm p-8 rounded-xl border border-slate-700 mb-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">MBTI Assessment Complete!</h2>
+          <p className="text-slate-300 mb-6">
+            Your personality type is <span className="text-blue-400 font-semibold">{calculateMBTI(responses)}</span>
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              variant="gradient" 
+              onClick={() => router.push('/assessment?completed=mbti')}
+            >
+              Return to Assessment Hub
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/assessment?type=skills')}
+            >
+              Continue to Skills Assessment
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-2">Personality Assessment</h2>
         <p className="text-slate-300 mb-4">
-          Discover your personality type to find career paths that match your natural strengths.
+          Answer the following questions to discover your MBTI personality type.
         </p>
         <Progress value={progress} className="h-2" />
         <p className="text-right text-sm text-slate-400 mt-1">
@@ -148,69 +227,37 @@ export default function MBTIAssessment() {
         </p>
       </div>
       
-      <motion.div
-        key={currentQuestion}
-        initial={showAnimation ? { x: 100, opacity: 0 } : false}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: -100, opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="bg-slate-800/50 backdrop-blur-sm p-8 rounded-xl border border-slate-700 mb-8"
-      >
-        <h3 className="text-xl font-semibold mb-6">
-          {mbtiQuestions[currentQuestion].question}
-        </h3>
-        
-        <div className="space-y-4">
-          {mbtiQuestions[currentQuestion].options.map((option, index) => (
-            <motion.div 
-              key={index}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left p-4 h-auto border-slate-600 hover:bg-slate-700 hover:text-white"
-                onClick={() => handleOptionSelect(option.value)}
-              >
-                <span className="text-lg">{option.text}</span>
-              </Button>
-            </motion.div>
-          ))}
+      {isSubmitting ? (
+        <div className="bg-slate-800/50 backdrop-blur-sm p-8 rounded-xl border border-slate-700 mb-8 flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-center">Processing your results...</p>
         </div>
-      </motion.div>
-      
-      <div className="flex justify-between">
-        <Button 
-          variant="ghost" 
-          onClick={() => {
-            if (currentQuestion > 0) {
-              setCurrentQuestion(currentQuestion - 1);
-              setResponses(responses.slice(0, -1));
-            }
-          }}
-          disabled={currentQuestion === 0}
+      ) : (
+        <motion.div
+          key={currentQuestion}
+          initial={{ opacity: 0, x: showAnimation ? -20 : 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          className="bg-slate-800/50 backdrop-blur-sm p-8 rounded-xl border border-slate-700 mb-8"
         >
-          Previous Question
-        </Button>
-        
-        <div className="flex space-x-2">
-          {Array.from({ length: Math.min(5, mbtiQuestions.length) }).map((_, i) => {
-            const questionIndex = Math.floor(currentQuestion / 5) * 5 + i;
-            return questionIndex < mbtiQuestions.length ? (
-              <div 
-                key={i}
-                className={`w-3 h-3 rounded-full ${
-                  questionIndex === currentQuestion 
-                    ? 'bg-blue-500' 
-                    : questionIndex < currentQuestion 
-                      ? 'bg-slate-500' 
-                      : 'bg-slate-700'
-                }`}
-              />
-            ) : null;
-          })}
-        </div>
-      </div>
+          <h3 className="text-xl font-semibold mb-6">
+            {mbtiQuestions[currentQuestion].question}
+          </h3>
+          
+          <div className="space-y-4">
+            {mbtiQuestions[currentQuestion].options.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => handleOptionSelect(option.value)}
+                className="w-full text-left p-4 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors"
+              >
+                {option.text}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

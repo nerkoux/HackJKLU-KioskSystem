@@ -1,6 +1,6 @@
 {
-  "name": "CareerKiosk AI",
-  "short_name": "CareerKiosk",
+  "name": "AscendAI",
+  "short_name": "AscendAI",
   "description": "AI-powered career assessment and guidance platform",
   "start_url": "/",
   "display": "standalone",

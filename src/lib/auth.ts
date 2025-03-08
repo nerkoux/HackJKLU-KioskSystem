@@ -5,6 +5,9 @@ import GoogleProvider from "next-auth/providers/google";
 declare module "next-auth" {
   interface Session {
     user: {
+      mbtiResult: any;
+      skillRatings: Record<string, number>;
+      savedCareers: string[];
       id?: string;
       name?: string | null;
       email?: string | null;
