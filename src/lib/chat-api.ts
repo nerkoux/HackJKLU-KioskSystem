@@ -1,7 +1,7 @@
 import { HfInference } from "@huggingface/inference";
 
 // Initialize Hugging Face client with your API token
-const hf = new HfInference("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");
+const hf = new HfInference("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");
 
 // Regular non-streaming chat response
 export async function generateChatResponse(prompt: string, context: string = '') {
