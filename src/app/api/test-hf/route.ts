@@ -4,7 +4,7 @@ import { HfInference } from "@huggingface/inference";
 export async function GET() {
   try {
     // Initialize Hugging Face client
-    const hf = new HfInference("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");
+    const hf = new HfInference("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");
     
     // Try a simple text generation request
     const response = await hf.textGeneration({
